@@ -5,7 +5,7 @@ const app = express();
 const port = 3000;
 
 // Connect to MongoDB (replace with your connection string)
-mongoose.connect('mongodb://localhost:27017/my_database', {
+mongoose.connect('mongodb://localhost:3000/Internship', {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
