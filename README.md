@@ -1,3 +1,103 @@
+//Error Handling and Logging  
+// errors.js
+class NotFoundError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "NotFoundError";
+    this.statusCode = 404;
+  }
+}
+
+module.exports = NotFoundError;
+
+// errors/ValidationError.js
+class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+    this.statusCode = 400;
+  }
+}
+
+module.exports = ValidationError;
+
+// logger.js
+const { createLogger, format, transports } = require('winston');
+
+const logger = createLogger({
+  level: 'info',
+  format: format.combine(
+    format.timestamp(),
+    format.json()
+  ),
+  transports: [
+    new transports.Console(),
+    new transports.File({ filename: 'error.log', level: 'error' }),
+    new transports.File({ filename: 'combined.log' })
+  ],
+});
+
+module.exports = logger;
+
+// errorHandler.js
+const logger = require('./logger');
+
+function errorHandler(err, req, res, next) {
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+
+  // Log the error
+  logger.error(`${req.method} ${req.url} - ${statusCode} - ${message}`);
+
+  // Send response
+  res.status(statusCode).json({
+    status: 'error',
+    statusCode,
+    message,
+  });
+}
+
+module.exports = errorHandler;
+
+// index.js
+const express = require('express');
+const logger = require('./logger');
+const errorHandler = require('./errorHandler');
+const NotFoundError = require('./errors');
+
+const app = express();
+
+// log all incoming requests
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.url}`);
+  next();
+});
+
+//  Route
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
+
+// Route that triggers a NoErrorFound
+app.get('/not-found', (req, res, next) => {
+  next(new NotFoundError('This resource was not found.'));
+});
+
+//  handle 404 errors
+app.use((req, res, next) => {
+  next(new NotFoundError('Route not found.'));
+});
+
+// error handling middleware
+app.use(errorHandler);
+
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  logger.info(`Server is running on port ${PORT}`);
+});
+
+----------------------------------------------------------
 const express = require('express');
 const app = express();
 const port = 3000;
